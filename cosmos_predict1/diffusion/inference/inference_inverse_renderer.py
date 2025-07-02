@@ -127,6 +127,11 @@ def parse_arguments() -> argparse.Namespace:
         nargs="+",
         help="Resize input images to this resolution before other processing, e.g. center crop. Provide as two integers: height width. If not set, uses original image size."
     )
+    parser.add_argument(
+        "--ext",
+        type=str,
+        default=None
+    )
 
     return parser.parse_args()
 
@@ -175,26 +180,36 @@ def demo(args: argparse.Namespace):
     # Generate output
     n_test = len(dataloader)
     iter_dataloader = iter(dataloader)
+    print(f"Number of test samples: {n_test}")
+    log.info(f"Number of test samples: {n_test}")
     for i in range(n_test):
+        print('for i in range(n_test):')
         data_batch = next(iter_dataloader)
 
         for gbuffer_pass in args.inference_passes:
+            print('for gbuffer_pass in args.inference_passes:')
             # overwrite specified G-buffer passes
             context_index = GBUFFER_INDEX_MAPPING[gbuffer_pass]
             data_batch["context_index"].fill_(context_index)
 
+            clip_name = data_batch['clip_name'][0].replace("/", "__")
+            if os.path.exists(os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.mp4")):
+                continue
+        
             output = pipeline.generate_video(
                 data_batch=data_batch,
                 normalize_normal=(gbuffer_pass == 'normal' and args.normalize_normal),
             )
-            
+            print(f"{args.save_video}")
             # Save output as individual frames
             if args.save_image:
+                print(f"if args.save_image:")
                 video_relative_base_name = data_batch['clip_name'][0]
                 chunk_ind_str = data_batch['chunk_index'][0] if 'chunk_index' in data_batch else '0000'
                 for ind in range(output.shape[0]):  # (T, H, W, C)
                     save_path = os.path.join(args.video_save_folder, "gbuffer_frames", f"{video_relative_base_name}/{chunk_ind_str}.{ind:04d}.{gbuffer_pass}.jpg")
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    print(f"Saving frame {ind} to {save_path}")
                     save_image_or_video(
                         video_save_path=save_path,
                         video=output[ind:ind + 1, ...],
@@ -203,8 +218,14 @@ def demo(args: argparse.Namespace):
                     )
             # Save output as video
             if args.save_video:
+                print(f"if args.save_video:")
                 clip_name = data_batch['clip_name'][0].replace("/", "__")
-                video_save_path = os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.mp4")
+                if args.ext is not None:
+                    print(f"Saving video with extension {args.ext}")
+                    video_save_path = os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.{args.ext}.mp4")
+                else:
+                    video_save_path = os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.mp4")
+                    print(f"Saving video to {video_save_path}")
                 save_image_or_video(
                     video_save_path=video_save_path,
                     video=output,
