@@ -53,7 +53,9 @@ def main(images_dir, cameras_dir, method, texture_size, model_path=None):
     # Generate output filename
     folder_name = os.path.basename(images_folder)
     filename = f"{folder_name.split('_', 1)[-1]}.obj"
-    output_file = os.path.join(os.path.dirname(images_folder), filename)
+    output_dir = os.path.join(os.path.dirname(images_folder), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, filename)
 
     # Check if output exists
     if os.path.exists(output_file):
