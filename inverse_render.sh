@@ -1,7 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
-# 设置参数
-dir="$1"  # 传入的主目录路径
+dir="$1"  # sourse directory
 images_dir="$dir/images"
 tmp_base_dir="$dir/tmp_groups"
 video_save_folder="$dir/video_results_group"
@@ -46,7 +44,8 @@ for ((start=0; start<total; start+=window)); do
                 --group_mode $group_mode \
                 --video_save_folder="$video_save_folder" \
 		--save_image false \
-                --ext "$group_idx"
+                --ext "$group_idx"\
+                --inference_passes "basecolor" "roughness" "metallic" \
 
         ((group_idx++))
 done

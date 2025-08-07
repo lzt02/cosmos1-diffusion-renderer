@@ -60,7 +60,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--inference_passes",
         type=str,
-        default=["basecolor", "normal", "depth", "roughness", "metallic"],
+        default=["basecolor", "roughness", "metallic"], # ["basecolor", "normal", "depth", "roughness", "metallic"],
         nargs="+",
         help=(
             "List of G-buffer passes to infer. "
@@ -193,8 +193,8 @@ def demo(args: argparse.Namespace):
             data_batch["context_index"].fill_(context_index)
 
             clip_name = data_batch['clip_name'][0].replace("/", "__")
-            if os.path.exists(os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.mp4")):
-                continue
+            # if os.path.exists(os.path.join(args.video_save_folder, f"{clip_name}.{gbuffer_pass}.mp4")):
+            #     continue
         
             output = pipeline.generate_video(
                 data_batch=data_batch,
@@ -207,7 +207,12 @@ def demo(args: argparse.Namespace):
                 video_relative_base_name = data_batch['clip_name'][0]
                 chunk_ind_str = data_batch['chunk_index'][0] if 'chunk_index' in data_batch else '0000'
                 for ind in range(output.shape[0]):  # (T, H, W, C)
-                    save_path = os.path.join(args.video_save_folder, "gbuffer_frames", f"{video_relative_base_name}/{chunk_ind_str}.{ind:04d}.{gbuffer_pass}.jpg")
+                    idx = ind + 50*int(args.ext) if args.ext is not None else ind
+                    save_path = os.path.join(args.video_save_folder, f"{gbuffer_pass}_{args.ext}", f"{idx:03d}.jpg")
+                    print(args.video_save_folder)
+                    print(video_relative_base_name)
+                    print(f"save_path: {save_path}")
+                    #return
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
                     print(f"Saving frame {ind} to {save_path}")
                     save_image_or_video(
