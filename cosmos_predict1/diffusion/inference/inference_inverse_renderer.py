@@ -209,9 +209,9 @@ def demo(args: argparse.Namespace):
                 for ind in range(output.shape[0]):  # (T, H, W, C)
                     idx = ind + 50*int(args.ext) if args.ext is not None else ind
                     save_path = os.path.join(args.video_save_folder, f"{gbuffer_pass}_{args.ext}", f"{idx:03d}.jpg")
-                    print(args.video_save_folder)
-                    print(video_relative_base_name)
-                    print(f"save_path: {save_path}")
+                    # print(args.video_save_folder)
+                    # print(video_relative_base_name)
+                    # print(f"save_path: {save_path}")
                     #return
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
                     print(f"Saving frame {ind} to {save_path}")
