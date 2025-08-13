@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 from glob import glob
 import shutil
+from PIL import Image
+from tqdm import tqdm
+
 
 def compute_scale_shift(source, target, epsilon=1e-6):
     """计算单通道图像的scale和shift参数"""

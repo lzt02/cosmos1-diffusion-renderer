@@ -9,11 +9,13 @@ output_dir="$dir/output"
 
 bash inverse_render.sh "$dir"
 
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --mode "basecolor"
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --mode "roughness"
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --mode "metallic"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "basecolor"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "roughness"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "metallic"
 
-"${metashape_path}/metashape" -r mesh_tools/scripts/texture_merge.py --images_dir "$images_dir" --cameras_dir "$dir/cameras_pose.json" --method "metashape" --texture_size 4096  -platform offscreen
+"${metashape_path}/metashape" -r mesh_tools/scripts/texture_mesh.py --images_dir "$dir/merge_basecolor_resize" --cameras_dir "$dir/camera_pose.json" --method "metashape" --texture_size 4096  -platform offscreen
+"${metashape_path}/metashape" -r mesh_tools/scripts/texture_mesh.py --images_dir "$dir/merge_roughness_resize" --cameras_dir "$dir/camera_pose.json" --method "metashape" --texture_size 4096  -platform offscreen
+"${metashape_path}/metashape" -r mesh_tools/scripts/texture_mesh.py --images_dir "$dir/merge_metallic_resize" --cameras_dir "$dir/camera_pose.json" --method "metashape" --texture_size 4096  -platform offscreen
 
 find "$output_dir" -type f \( -name "roughness*.mtl" -o -name "roughness*.obj" \) -exec rm -f {} \;
 find "$output_dir" -type f \( -name "metallic*.mtl" -o -name "metallic*.obj" \) -exec rm -f {} \;

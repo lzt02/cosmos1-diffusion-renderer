@@ -36,7 +36,7 @@ def main(images_dir, cameras_dir, method, texture_size, model_path=None):
     cameras_folder = cameras_dir
         
     if not os.path.exists(images_folder) or not os.path.exists(cameras_folder):
-        print(f"Error: Images folder or cameras folder not found")
+        print(f"Error: images or cameras not found")
         print(f"Checked paths: {images_folder} and {cameras_folder}")
         return
     if model_path is not None:
