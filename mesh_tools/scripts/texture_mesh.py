@@ -15,9 +15,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
               type=click.Path(exists=True, file_okay=False, resolve_path=True),
               required=True,
               help='Directory containing cameras')
-@click.option('--model_path', '-s', 
+@click.option('--model_path', '-s',
               type=click.Path(exists=True, file_okay=False, resolve_path=True),
-              required=True,
+              required=False,
+              default=None,
               help='Path to the 3D model file (OBJ format)')
 @click.option('--method', '-m',
               type=click.Choice(['metashape'], case_sensitive=False),
