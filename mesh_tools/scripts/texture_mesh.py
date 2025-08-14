@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
               required=True,
               help='Directory containing images')
 @click.option('--cameras_dir', '-s', 
-              type=click.Path(exists=True, file_okay=False, resolve_path=True),
+              type=click.Path(exists=True, file_okay=True, resolve_path=True),
               required=True,
               help='Directory containing cameras')
 @click.option('--model_path', '-s',
