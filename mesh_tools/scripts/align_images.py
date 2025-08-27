@@ -3,8 +3,10 @@ import cv2
 import numpy as np
 from glob import glob
 import shutil
-from PIL import Image
 from tqdm import tqdm
+from PIL import Image
+import sys
+from utils.images import detail_transfer
 
 
 def compute_scale_shift(source, target, epsilon=1e-6):
@@ -60,8 +62,11 @@ def align_and_merge_images(input_dir, output_dir, cate):
     os.makedirs(output_dir, exist_ok=True)
     
     # 获取所有粗糙度文件夹（按数字排序）
-    cate_dirs = sorted(glob(os.path.join(input_dir, f'{cate}_*')),
-                        key=lambda x: int(os.path.basename(x).split('_')[-1]))
+    cate_dirs = sorted(
+        glob(os.path.join(input_dir, cate, 'chunk_*')),
+        key=lambda x: int(os.path.basename(x).split('_')[-1])
+    )
+
     
     if not cate_dirs:
         print("未找到粗糙度文件夹!")
@@ -164,8 +169,8 @@ def align_and_merge_images(input_dir, output_dir, cate):
             img = cv2.imread(img_path)
             
             # 应用变换（对整个图片应用）
-            # aligned_img = apply_transform(img, alpha, beta)
-            aligned_img = img.astype(np.uint8)
+            aligned_img = apply_transform(img, alpha, beta)
+            # aligned_img = img.astype(np.uint8)
             # 跳过前7张图片（与参考图片重叠的部分）
             if j >= 7:
                 output_path = os.path.join(output_dir, f"{current_index:03d}.jpg")
@@ -200,36 +205,86 @@ def visualize_alignment(ref_img, new_img, alpha, beta, output_path):
     cv2.imwrite(output_path, combined)
     print(f"  保存对齐可视化到: {output_path}")
 
-def resize_cate_to_fixed_size(input_dir, cate, target_size=(1024, 1024)):
+def resize_cate_to_fixed_size(input_dir, cate, ref_dir, target_size=(1024, 1024)):
 
+    # for root, dirs, files in os.walk(input_dir):
+    #     if f"merge_{cate}" in dirs:
+    #         cate_dir = os.path.join(root, f"merge_{cate}")
+    #         output_dir = os.path.join(root, f"merge_{cate}_resize")
+
+    #         # 创建输出目录
+    #         os.makedirs(output_dir, exist_ok=True)
+
+    #         # 获取所有图片文件
+    #         cate_files = [
+    #             f for f in os.listdir(cate_dir) 
+    #             if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+    #         ]
+
+    #         print(f"\nProcessing folder: {root}")
+    #         print(f"Found {len(cate_files)} images in f'merge_{cate}'")
+
+    #         # 调整所有图片尺寸
+    #         for filename in tqdm(cate_files, desc="Resizing images"):
+    #             try:
+    #                 input_path = os.path.join(cate_dir, filename)
+    #                 ref_path = os.path.join(ref_dir, filename)
+    #                 output_path = os.path.join(output_dir, filename)
+
+    #                 with Image.open(input_path) as img:
+    #                     resized_img = img.resize(target_size, Image.Resampling.LANCZOS)
+    #                     resized_img.save(output_path)
+    #             except Exception as e:
+    #                 print(f"Error processing {filename}: {e}")
     for root, dirs, files in os.walk(input_dir):
-        if f"merge_{cate}" in dirs:
-            cate_dir = os.path.join(root, f"merge_{cate}")
-            output_dir = os.path.join(root, f"merge_{cate}_resize")
+        if f"merge_{cate}" not in dirs:
+            
+            continue
+        src_dir = os.path.join(root, f"merge_{cate}")
+        out_dir = os.path.join(root, f"merge_{cate}_resize")
+        os.makedirs(out_dir, exist_ok=True)
 
-            # 创建输出目录
-            os.makedirs(output_dir, exist_ok=True)
+        # 用纯文件名（无后缀）当 key，方便匹配
+        src_dict = {os.path.splitext(f)[0]: f
+                    for f in os.listdir(src_dir)
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg'))}
 
-            # 获取所有图片文件
-            cate_files = [
-                f for f in os.listdir(cate_dir) 
-                if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-            ]
+        ref_dict = {os.path.splitext(f)[0]: f
+                    for f in os.listdir(ref_dir)
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg'))}
 
-            print(f"\nProcessing folder: {root}")
-            print(f"Found {len(cate_files)} images in f'merge_{cate}'")
+        common_keys = set(src_dict) & set(ref_dict)
+        if not common_keys:
+            print(f"[WARN] 在 {src_dir} 与 {ref_dir} 中找不到同名文件，跳过")
+            continue
+        # print({common_keys})
+        for base_name in tqdm(common_keys, desc="Resize + Detail"):
+            src_file = src_dict[base_name]
+            ref_file = ref_dict[base_name]
 
-            # 调整所有图片尺寸
-            for filename in tqdm(cate_files, desc="Resizing images"):
-                try:
-                    input_path = os.path.join(cate_dir, filename)
-                    output_path = os.path.join(output_dir, filename)
+            src_path  = os.path.join(src_dir, src_file)
+            ref_path  = os.path.join(ref_dir, ref_file)
 
-                    with Image.open(input_path) as img:
-                        resized_img = img.resize(target_size, Image.Resampling.LANCZOS)
-                        resized_img.save(output_path)
-                except Exception as e:
-                    print(f"Error processing {filename}: {e}")
+            # 1) resize
+            with Image.open(src_path) as img:
+                resized = img.resize(target_size, Image.Resampling.LANCZOS)
+
+            # 2) detail transfer
+            with Image.open(ref_path) as ref_img:
+                enhanced = detail_transfer(
+                    source_image=ref_img.convert('RGBA'),
+                    target_image=resized.convert('RGBA'),
+                    mode="add",
+                    blur_sigma=1,
+                    blend_factor=1,
+                    mask=None,
+                    use_alpha_as_mask=True
+                )
+            enhanced = enhanced.convert("RGB")
+            # 3) 保存：输出文件名保持与 src 一致（后缀也保留 src 的）
+            enhanced.save(os.path.join(out_dir, src_file))
+            print(f"Processed and saved: {os.path.join(out_dir, src_file)}")
+    
                     
 if __name__ == "__main__":
     import argparse
@@ -239,12 +294,15 @@ if __name__ == "__main__":
                        help="Root directory containing subfolders with merge_*.")
     parser.add_argument("--cate", "-c", type=str, required=True, 
                        help="")
+    parser.add_argument("--ref_dir", "-r", type=str, required=True,
+                        help="Directory with reference images (same filename)")
     args = parser.parse_args()
 
     input_directory = args.input_dir
     cate = args.cate
-
+    ref_directory = args.ref_dir
     output_directory = os.path.join(os.path.dirname(input_directory), f"merge_{cate}")
     
     align_and_merge_images(input_directory, output_directory, cate)
-    resize_cate_to_fixed_size(os.path.dirname(input_directory), cate, target_size=(1024, 1024))
+    resize_cate_to_fixed_size(os.path.dirname(input_directory), cate, ref_directory, target_size=(1024, 1024))
+    
