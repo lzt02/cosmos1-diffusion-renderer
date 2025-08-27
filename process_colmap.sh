@@ -9,9 +9,9 @@ output_dir="$dir/output"
 
 bash inverse_render.sh "$dir"
 
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "basecolor"
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "roughness"
-python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "metallic"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "basecolor" --ref_dir "$images_dir"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "roughness" --ref_dir "$images_dir"
+python mesh_tools/scripts/align_images.py --input_dir "$pbr_results_dir" --cate "metallic" --ref_dir "$images_dir"
 
 "${metashape_path}/metashape" -r mesh_tools/scripts/texture_mesh.py --images_dir "$dir/merge_basecolor_resize" --cameras_dir "$dir/sparse/0" --model_path "$dir/3DModel.obj" --method "metashape" --texture_size 4096  -platform offscreen
 "${metashape_path}/metashape" -r mesh_tools/scripts/texture_mesh.py --images_dir "$dir/merge_roughness_resize" --cameras_dir "$dir/sparse/0" --model_path "$dir/3DModel.obj" --method "metashape" --texture_size 4096  -platform offscreen
